@@ -1,0 +1,48 @@
+name: tinybots-db
+
+services:
+  mysql-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_USER: dbadmin
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tinybots
+    ports:
+      - "1123:3306"
+
+  typ-e:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/typ-e:${TYP_E_VERSION:-latest}
+    links:
+      - mysql-db
+    environment:
+      DB_RW_HOST: mysql-db:3306
+      DB_RW_USERNAME: root
+      DB_RW_PASSWORD: root
+    volumes:
+      - typ-e-maven-cache:/root/.m2
+
+  wonkers-mysql-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_USER: dbadmin
+      MYSQL_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dashboard
+    ports:
+      - "1124:3306"
+
+  wonkers-db:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-db:${WONKERS_DB_VERSION:-latest}
+    links:
+      - wonkers-mysql-db
+    environment:
+      DB_HOST: wonkers-mysql-db:3306
+      DB_RW_USERNAME: root
+      DB_RW_PASSWORD: root
+    volumes:
+      - wonkers-db-maven-cache:/root/.m2
+
+volumes:
+  typ-e-maven-cache:
+  wonkers-db-maven-cache:
