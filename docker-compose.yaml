@@ -194,6 +194,39 @@ services:
         condition: service_started
       wonkers-db:
         condition: service_completed_successfully
+
+  node-wonkers-graphql:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/wonkers-graphql:/usr/src/app
+    labels:
+      - wonkers-graphql
+    environment:
+      TINYBOTS_DB_HOST: mysql-type-db
+      DASHBOARD_DB_HOST: mysql-dashboard-db
+      WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
+      WONKERS_ACCOUNTS_INTERNAL_ADDRESS: http://test.test
+      WONKERS_USER_ACCOUNT_ADDRESS: http://wonkers-account:8080
+      TAAS_ORDERS_SERVICE_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTS_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTACCOUNT_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTONLINESTATUS_INTERNAL_ADDRESS: http://test.test
+      SCHEDULING_SERVICE_ADDRESS: http://test.test
+      WONKERS_TAAS_INTERNAL_ADDRESS: http://test.test
+      SCRIPTS_INTERNAL_ADDRESS: http://test.test
+      SENSARA_API_ADDRESS: http://test.test
+      SUPER_USERS: admin@admin.com
+      JIRA_EMAIL: email@email.com
+      JIRA_TOKEN: email@email.com
+      JIRA_BASE_URL: email.com
+    working_dir: /usr/src/app
+    entrypoint: ci/node-verify.sh
+    depends_on:
+      typ-e:
+        condition: service_completed_successfully
+      wonkers-db:
+        condition: service_completed_successfully
+
 volumes:
   typ-e-maven-cache:
   wonkers-db-maven-cache:
