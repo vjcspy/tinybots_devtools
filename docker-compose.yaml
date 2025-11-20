@@ -10,17 +10,17 @@ services:
       MYSQL_DATABASE: tinybots
     ports:
       - "1123:3306"
-
+      
   typ-e:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/typ-e:${TYP_E_VERSION:-latest}
-    links:
-      - mysql-db
     environment:
       DB_RW_HOST: mysql-db:3306
       DB_RW_USERNAME: root
       DB_RW_PASSWORD: root
     volumes:
       - typ-e-maven-cache:/root/.m2
+    depends_on:
+      - mysql-db
 
   wonkers-mysql-db:
     image: mysql:8.0
@@ -34,15 +34,173 @@ services:
 
   wonkers-db:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-db:${WONKERS_DB_VERSION:-latest}
-    links:
-      - wonkers-mysql-db
     environment:
       DB_HOST: wonkers-mysql-db:3306
       DB_RW_USERNAME: root
       DB_RW_PASSWORD: root
     volumes:
       - wonkers-db-maven-cache:/root/.m2
+    depends_on:
+      - wonkers-mysql-db
 
+  localstack:
+    image: localstack/localstack
+    ports:
+      - "4566-4599"
+    environment:
+      - SERVICES=sqs
+      - DEFAULT_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_REGION=us-east-1
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "./localstack:/etc/localstack/init/ready.d"
+
+  checkpoint:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/checkpoint:${CHECKPOINT_VERSION:-latest}
+    mem_limit: 512m
+    ports:
+      - 3002:8080
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:- }
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:- }
+      ENVIRONMENT: dev
+      DB_RW_HOST: mysql-db
+      DB_RW_PORT: 3306
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      KONG_ADMIN_ADDRESS: http://kong-v2:8001
+      KONG_API_ADDRESS: http://kong-v2:8000
+      TOKEN_SERVICE_URL: http://kong-retriever:8080
+      WONKERS_API_ADDRESS: http://localhost:8089
+      PROWL_INTERNAL_ADDRESS: http://prowl:8080
+      MARVIN_INTERNAL_ADDRESS: http://127.0.0.1:8080
+      CHECKPOINT_INTERNAL_ADDRESS: http://127.0.0.1:8080
+      MICRO_MANAGER_INTERNAL_ADDRESS: http://localhost:8089
+      ROBOT_CONFIG_ADDRESS: http://localhost:8089
+      FROM_EMAIL: integration-test@example.com
+      FRONT_END_ADDRESS: https://my.tinybots.academy
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: 1025
+      SMTP_USERNAME: test
+      SMTP_PASSWORD: dummy
+      SMTP_USE_SSL: "false"
+    depends_on:
+      - mysql-db
+
+  prowl:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/prowl:${PROWL_VERSION:-latest}
+    ports:
+      - 3001:8080
+    restart: on-failure:5
+    environment:
+      SERVICE_ADDRESS: http://prowl:8080
+      KONG_ADMIN_ADDRESS: http://kong-v2:8001
+      KONG_API_ADDRESS: http://kong-v2:8000
+      PROWL_INTERNAL_ADDRESS: http://127.0.0.1:8080
+      CHECKPOINT_INTERNAL_ADDRESS: http://checkpoint:8080
+      TOKEN_SERVICE_URL: http://kong-retriever:8080
+      DB_RW_HOST: mysql-db:3306
+      FRONT_END_ADDRESS: https://my.tinybots.academy
+      FROM_EMAIL: integration-test@example.com
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: 1025
+      SMTP_USERNAME: test
+      SMTP_PASSWORD: dummy
+      SMTP_USE_SSL: "false"
+      WELCOME_NOTIFICATION_UUID: abcdefg
+      HUE_INTERNAL_ADDRESS: http://hue:8089
+    depends_on:
+      - mysql-db
+
+  wonkers:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-api:${WONKERS_API_VERSION:-latest}
+    ports:
+      - 8080
+    environment:
+      DB_RW_HOST: wonkers-mysql-db
+      DB_PORT: 3306
+      SERVICE_ADDRESS: http://wonkers:8080
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      TINMAN_ADDRESS: http://tinman:8080
+      KONG_ADMIN_ADDRESS: http://kong:8001
+      KONG_API_ADDRESS: http://kong:8000
+      WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
+      FRONT_END_ADDRESS: https://dashboard.tinybots.academy
+      ADMIN_ADDRESS: https://admin.tinybots.academy
+      TEAMLEADER_ID: test
+      TEAMLEADER_SECRET: test
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: 1025
+      SMTP_USERNAME: test
+      SMTP_PASSWORD: dummy
+      SMTP_USE_SSL: 'false'
+    depends_on:
+      - wonkers-mysql-db
+
+  wonkers-account:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-accounts:${WONKERS_ACCOUNT_VERSION:-latest}
+    ports:
+      - 8111:8080
+    environment:
+      DB_RW_HOST: wonkers-mysql-db
+      DB_PORT: 3306
+      SERVICE_ADDRESS: http://wonkers:8080
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      TINMAN_ADDRESS: http://tinman:8080
+      KONG_ADMIN_ADDRESS: http://kong:8001
+      KONG_API_ADDRESS: http://kong:8000
+      WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
+      FRONT_END_ADDRESS: https://dashboard.tinybots.academy
+      ADMIN_ADDRESS: https://admin.tinybots.academy
+      TEAMLEADER_ID: test
+      TEAMLEADER_SECRET: test
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: 1025
+      SMTP_USERNAME: test
+      SMTP_PASSWORD: dummy
+      SMTP_USE_SSL: "false"
+    depends_on:
+      - wonkers-mysql-db
+    networks:
+      - default
+
+
+  node-megazord-events:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/megazord-events:/usr/src/app
+    labels:
+      - megazord-events
+    environment:
+      DB_RW_HOST: mysql-db
+      DB_WONKERS_ACCOUNT_RW_HOST: wonkers-mysql-db
+      DB_PORT: 3306
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      PROWL_ADDRESS: http://prowl:8080
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localstack:4566
+      STATUS_QUEUE_ADDRESS: http://localhost:4566/000000000000/status-queue
+      ENVIRONMENT: "academy"
+      WONKERS_INTERNAL_ADDRESS: "http://wonkers:8080"
+      WONKERS_USER_ACCOUNT_ADDRESS: "http://wonkers-account:8080"
+    working_dir: /usr/src/app
+    entrypoint: ["sh", "-c", "yarn test"]
+    depends_on:
+      mysql-db:
+        condition: service_started
+      prowl:
+        condition: service_started
+      wonkers-db:
+        condition: service_completed_successfully
 volumes:
   typ-e-maven-cache:
   wonkers-db-maven-cache:
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.16.0.0/24
