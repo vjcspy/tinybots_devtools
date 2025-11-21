@@ -173,7 +173,6 @@ services:
       - /Users/kai/work/tinybots/megazord-events:/usr/src/app
     labels:
       - megazord-events
-    profiles: [megazord-events]
     environment:
       DB_RW_HOST: mysql-typ-e-db
       DB_WONKERS_ACCOUNT_RW_HOST: mysql-wonkers-db
@@ -204,7 +203,6 @@ services:
       - /Users/kai/work/tinybots/wonkers-graphql:/usr/src/app
     labels:
       - wonkers-graphql
-    profiles: [wonkers-graphql]
     environment:
       TINYBOTS_DB_HOST: mysql-typ-e-db
       DASHBOARD_DB_HOST: mysql-wonkers-db
@@ -224,7 +222,7 @@ services:
       JIRA_TOKEN: email@email.com
       JIRA_BASE_URL: email.com
     working_dir: /usr/src/app
-    entrypoint: ["sh", "-c", "yarn test"]
+    entrypoint: ["sh", "-c", "yarn test:only"]
     depends_on:
       typ-e:
         condition: service_completed_successfully
