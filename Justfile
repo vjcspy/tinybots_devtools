@@ -23,7 +23,7 @@ log-megazord-events:
 start-wonkers-graphql:
     {{compose}} up -d \
       mysql-typ-e-db typ-e mysql-wonkers-db wonkers-db wonkers wonkers-account
-    {{compose}} logs -f \
+    -{{compose}} logs -f \
       mysql-typ-e-db typ-e mysql-wonkers-db wonkers-db wonkers wonkers-account
 
 test-wonkers-graphql:
