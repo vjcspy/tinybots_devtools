@@ -1,51 +1,47 @@
-name: tinybots-db
+name: tinybots
 
 services:
-  mysql-type-db:
+  mysql-typ-e-db:
     image: mysql:8.0
     environment:
       MYSQL_USER: dbadmin
       MYSQL_PASSWORD: root
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
       MYSQL_DATABASE: tinybots
     ports:
       - "1123:3306"
-    profiles: [megazord-events, wonkers-graphql]
-      
+
   typ-e:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/typ-e:${TYP_E_VERSION:-latest}
     environment:
-      DB_HOST: mysql-type-db:3306
+      DB_HOST: mysql-typ-e-db:3306
       DB_RW_USERNAME: root
-      DB_RW_PASSWORD: root
+      DB_RW_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
     volumes:
       - typ-e-maven-cache:/root/.m2
     depends_on:
-      - mysql-type-db
-    profiles: [wonkers-graphql]
+      - mysql-typ-e-db
 
-  mysql-dashboard-db:
+  mysql-wonkers-db:
     image: mysql:8.0
     environment:
       MYSQL_USER: dbadmin
       MYSQL_PASSWORD: root
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
       MYSQL_DATABASE: dashboard
     ports:
       - "1124:3306"
-    profiles: [megazord-events, wonkers-graphql]
 
   wonkers-db:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-db:${WONKERS_DB_VERSION:-latest}
     environment:
-      DB_HOST: mysql-dashboard-db:3306
+      DB_HOST: mysql-wonkers-db:3306
       DB_RW_USERNAME: root
-      DB_RW_PASSWORD: root
+      DB_RW_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
     volumes:
       - wonkers-db-maven-cache:/root/.m2
     depends_on:
-      - mysql-dashboard-db
-    profiles: [megazord-events, wonkers-graphql]
+      - mysql-wonkers-db
 
   localstack:
     image: localstack/localstack
@@ -60,7 +56,6 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./localstack:/etc/localstack/init/ready.d"
-    profiles: [megazord-events]
 
   checkpoint:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/checkpoint:${CHECKPOINT_VERSION:-latest}
@@ -71,7 +66,7 @@ services:
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:- }
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:- }
       ENVIRONMENT: dev
-      DB_RW_HOST: mysql-type-db
+      DB_RW_HOST: mysql-typ-e-db
       DB_RW_PORT: 3306
       CHECKPOINT_ADDRESS: http://checkpoint:8080
       KONG_ADMIN_ADDRESS: http://kong-v2:8001
@@ -91,8 +86,8 @@ services:
       SMTP_PASSWORD: dummy
       SMTP_USE_SSL: "false"
     depends_on:
-      - mysql-type-db
-    profiles: [megazord-events]
+      typ-e:
+        condition: service_completed_successfully
 
   prowl:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/prowl:${PROWL_VERSION:-latest}
@@ -106,7 +101,7 @@ services:
       PROWL_INTERNAL_ADDRESS: http://127.0.0.1:8080
       CHECKPOINT_INTERNAL_ADDRESS: http://checkpoint:8080
       TOKEN_SERVICE_URL: http://kong-retriever:8080
-      DB_RW_HOST: mysql-type-db:3306
+      DB_RW_HOST: mysql-typ-e-db:3306
       FRONT_END_ADDRESS: https://my.tinybots.academy
       FROM_EMAIL: integration-test@example.com
       SMTP_HOST: mailcatcher
@@ -117,15 +112,15 @@ services:
       WELCOME_NOTIFICATION_UUID: abcdefg
       HUE_INTERNAL_ADDRESS: http://hue:8089
     depends_on:
-      - mysql-type-db
-    profiles: [megazord-events]
+      typ-e:
+        condition: service_completed_successfully
 
   wonkers:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-api:${WONKERS_API_VERSION:-latest}
     ports:
       - 8080
     environment:
-      DB_RW_HOST: mysql-dashboard-db
+      DB_RW_HOST: mysql-wonkers-db
       DB_PORT: 3306
       SERVICE_ADDRESS: http://wonkers:8080
       CHECKPOINT_ADDRESS: http://checkpoint:8080
@@ -143,15 +138,15 @@ services:
       SMTP_PASSWORD: dummy
       SMTP_USE_SSL: 'false'
     depends_on:
-      - mysql-dashboard-db
-    profiles: [megazord-events, wonkers-graphql]
+      wonkers-db:
+        condition: service_completed_successfully
 
   wonkers-account:
     image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/wonkers-accounts:${WONKERS_ACCOUNT_VERSION:-latest}
     ports:
       - 8111:8080
     environment:
-      DB_RW_HOST: mysql-dashboard-db
+      DB_RW_HOST: mysql-wonkers-db
       DB_PORT: 3306
       SERVICE_ADDRESS: http://wonkers:8080
       CHECKPOINT_ADDRESS: http://checkpoint:8080
@@ -169,11 +164,8 @@ services:
       SMTP_PASSWORD: dummy
       SMTP_USE_SSL: "false"
     depends_on:
-      - mysql-dashboard-db
-    networks:
-      - default
-    profiles: [megazord-events, wonkers-graphql]
-
+      wonkers-db:
+        condition: service_completed_successfully
 
   node-megazord-events:
     image: node:22-alpine
@@ -183,8 +175,8 @@ services:
       - megazord-events
     profiles: [megazord-events]
     environment:
-      DB_RW_HOST: mysql-type-db
-      DB_WONKERS_ACCOUNT_RW_HOST: mysql-dashboard-db
+      DB_RW_HOST: mysql-typ-e-db
+      DB_WONKERS_ACCOUNT_RW_HOST: mysql-wonkers-db
       DB_PORT: 3306
       CHECKPOINT_ADDRESS: http://checkpoint:8080
       PROWL_ADDRESS: http://prowl:8080
@@ -197,12 +189,12 @@ services:
       WONKERS_INTERNAL_ADDRESS: "http://wonkers:8080"
       WONKERS_USER_ACCOUNT_ADDRESS: "http://wonkers-account:8080"
     working_dir: /usr/src/app
-    entrypoint: ["sh", "-c", "yarn test"]
+    entrypoint: ["sh", "-c", "yarn test:only"]
     depends_on:
-      mysql-type-db:
-        condition: service_started
       prowl:
         condition: service_started
+      typ-e:
+        condition: service_completed_successfully
       wonkers-db:
         condition: service_completed_successfully
 
@@ -214,8 +206,8 @@ services:
       - wonkers-graphql
     profiles: [wonkers-graphql]
     environment:
-      TINYBOTS_DB_HOST: mysql-type-db
-      DASHBOARD_DB_HOST: mysql-dashboard-db
+      TINYBOTS_DB_HOST: mysql-typ-e-db
+      DASHBOARD_DB_HOST: mysql-wonkers-db
       WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
       WONKERS_ACCOUNTS_INTERNAL_ADDRESS: http://test.test
       WONKERS_USER_ACCOUNT_ADDRESS: http://wonkers-account:8080
