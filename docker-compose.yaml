@@ -171,6 +171,8 @@ services:
     image: node:22-alpine
     volumes:
       - /Users/kai/work/tinybots/megazord-events:/usr/src/app
+    ports:
+      - 8881:8080
     labels:
       - megazord-events
     environment:
@@ -187,7 +189,7 @@ services:
       ENVIRONMENT: "academy"
       WONKERS_INTERNAL_ADDRESS: "http://wonkers:8080"
       WONKERS_USER_ACCOUNT_ADDRESS: "http://wonkers-account:8080"
-      MEGAZORD_EVENTS_IS_LOCAL:
+      MEGAZORD_EVENTS_IS_LOCAL: true
     working_dir: /usr/src/app
     entrypoint: ["sh", "-c", "yarn test:only"]
     depends_on:

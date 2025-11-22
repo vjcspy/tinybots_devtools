@@ -12,14 +12,13 @@ async function main() {
   const scopeArg = args.find(a => a.startsWith('--scope='))
   const clean = args.includes('--clean')
   const dryRun = args.includes('--dry-run')
-  const scope = scopeArg ? scopeArg.split('=')[1] : `${Date.now()}`
+  const scope = scopeArg ? scopeArg.split('=')[1] : ``
   const ctx = await createContext(scope)
   try {
     const status = new RobotAccountStatusSeed()
     const robot = new RobotAccountSeed()
     const provider = new EventProviderSeed()
-    const schema = new EventSchemaSeed(1, false)
-    const seeds = [status, robot, provider, schema]
+    const seeds = [status, robot, provider]
     const orchestrator = new Orchestrator(seeds, ctx)
     if (clean) {
       const cleanOnly = new Orchestrator([new IncomingEventCleanerSeed(), ...seeds], ctx)
