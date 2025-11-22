@@ -9,7 +9,8 @@
     "generate": "npm run generate:tinybots && npm run generate:dashboard",
     "db:pull:tinybots": "prisma db pull --schema prisma/tinybots/schema.prisma",
     "db:pull:dashboard": "prisma db pull --schema prisma/dashboard/schema.prisma",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/seed/run.ts",
+    "seed:clean": "tsx src/seed/run.ts --clean"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
