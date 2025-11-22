@@ -167,7 +167,7 @@ services:
       wonkers-db:
         condition: service_completed_successfully
 
-  node-megazord-events:
+  megazord-events:
     image: node:22-alpine
     volumes:
       - /Users/kai/work/tinybots/megazord-events:/usr/src/app
@@ -187,6 +187,7 @@ services:
       ENVIRONMENT: "academy"
       WONKERS_INTERNAL_ADDRESS: "http://wonkers:8080"
       WONKERS_USER_ACCOUNT_ADDRESS: "http://wonkers-account:8080"
+      MEGAZORD_EVENTS_IS_LOCAL:
     working_dir: /usr/src/app
     entrypoint: ["sh", "-c", "yarn test:only"]
     depends_on:
@@ -197,7 +198,7 @@ services:
       wonkers-db:
         condition: service_completed_successfully
 
-  node-wonkers-graphql:
+  wonkers-graphql:
     image: node:22-alpine
     volumes:
       - /Users/kai/work/tinybots/wonkers-graphql:/usr/src/app
@@ -229,30 +230,15 @@ services:
       wonkers-db:
         condition: service_completed_successfully
 
-  node-azi-3-status-check-jobs:
+  azi-3-status-check-jobs:
     image: node:22-alpine
     volumes:
       - /Users/kai/work/tinybots/azi-3-status-check-jobs:/usr/src/app
     labels:
       - azi-3-status-check-jobs
     environment:
-      TINYBOTS_DB_HOST: mysql-typ-e-db
-      DASHBOARD_DB_HOST: mysql-wonkers-db
-      WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
-      WONKERS_ACCOUNTS_INTERNAL_ADDRESS: http://test.test
-      WONKERS_USER_ACCOUNT_ADDRESS: http://wonkers-account:8080
-      TAAS_ORDERS_SERVICE_INTERNAL_ADDRESS: http://test.test
-      WONKERS_ROBOTS_INTERNAL_ADDRESS: http://test.test
-      WONKERS_ROBOTACCOUNT_INTERNAL_ADDRESS: http://test.test
-      WONKERS_ROBOTONLINESTATUS_INTERNAL_ADDRESS: http://test.test
-      SCHEDULING_SERVICE_ADDRESS: http://test.test
-      WONKERS_TAAS_INTERNAL_ADDRESS: http://test.test
-      SCRIPTS_INTERNAL_ADDRESS: http://test.test
-      SENSARA_API_ADDRESS: http://test.test
-      SUPER_USERS: admin@admin.com
-      JIRA_EMAIL: email@email.com
-      JIRA_TOKEN: email@email.com
-      JIRA_BASE_URL: email.com
+      STATUS_QUEUE_ADDRESS: http://localhost:4566/000000000000/status-queue
+      MEGAZORD_EVENTS_ADDRESS: http://megazord-events:8080
     working_dir: /usr/src/app
     entrypoint: [ "sh", "-c", "yarn test:only" ]
     depends_on:
