@@ -2,7 +2,14 @@ set shell := ["bash", "-cu"]
 
 compose := "docker compose -f ./docker-compose.yaml"
 
+# azi-3-status-check-jobs
+dev-azi-3-status-check-jobs:
+    {{compose}} run --rm --service-ports --no-deps --use-aliases --entrypoint "sh -c 'corepack enable && yarn dev'" node-azi-3-status-check-jobs
+
 # Megazord Events
+dev-megazord-events:
+    {{compose}} run --rm --service-ports --no-deps --use-aliases --entrypoint "yarn dev" node-megazord-events
+
 start-megazord-events:
     {{compose}} up -d \
       mysql-typ-e-db typ-e mysql-wonkers-db wonkers-db localstack checkpoint prowl wonkers wonkers-account

@@ -229,6 +229,38 @@ services:
       wonkers-db:
         condition: service_completed_successfully
 
+  node-azi-3-status-check-jobs:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/azi-3-status-check-jobs:/usr/src/app
+    labels:
+      - azi-3-status-check-jobs
+    environment:
+      TINYBOTS_DB_HOST: mysql-typ-e-db
+      DASHBOARD_DB_HOST: mysql-wonkers-db
+      WONKERS_INTERNAL_ADDRESS: http://wonkers:8080
+      WONKERS_ACCOUNTS_INTERNAL_ADDRESS: http://test.test
+      WONKERS_USER_ACCOUNT_ADDRESS: http://wonkers-account:8080
+      TAAS_ORDERS_SERVICE_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTS_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTACCOUNT_INTERNAL_ADDRESS: http://test.test
+      WONKERS_ROBOTONLINESTATUS_INTERNAL_ADDRESS: http://test.test
+      SCHEDULING_SERVICE_ADDRESS: http://test.test
+      WONKERS_TAAS_INTERNAL_ADDRESS: http://test.test
+      SCRIPTS_INTERNAL_ADDRESS: http://test.test
+      SENSARA_API_ADDRESS: http://test.test
+      SUPER_USERS: admin@admin.com
+      JIRA_EMAIL: email@email.com
+      JIRA_TOKEN: email@email.com
+      JIRA_BASE_URL: email.com
+    working_dir: /usr/src/app
+    entrypoint: [ "sh", "-c", "yarn test:only" ]
+    depends_on:
+      typ-e:
+        condition: service_completed_successfully
+      wonkers-db:
+        condition: service_completed_successfully
+
 volumes:
   typ-e-maven-cache:
   wonkers-db-maven-cache:
