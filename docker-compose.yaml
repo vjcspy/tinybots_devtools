@@ -202,6 +202,8 @@ services:
 
   wonkers-graphql:
     image: node:22-alpine
+    ports:
+      - 8882:8080
     volumes:
       - /Users/kai/work/tinybots/wonkers-graphql:/usr/src/app
     labels:
@@ -234,6 +236,9 @@ services:
 
   azi-3-status-check-jobs:
     image: node:22-alpine
+    ports:
+      - 8883:8080
+      - 9229:9229
     volumes:
       - /Users/kai/work/tinybots/azi-3-status-check-jobs:/usr/src/app
     labels:
