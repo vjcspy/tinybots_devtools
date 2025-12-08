@@ -167,6 +167,25 @@ services:
       wonkers-db:
         condition: service_completed_successfully
 
+  mailcatcher:
+    image: schickling/mailcatcher:latest
+    ports:
+      - "1080"
+      - "1025"
+  kryten:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/kryten:${KRYTEN_API_VERSION:-latest}
+    ports:
+      - 8080
+    environment:
+      KONG_ADMIN_ADDRESS: http://kong-v2:8001
+      KONG_API_ADDRESS: http://kong-v2:8000
+      KRYTEN_USERS_ADDRESS: http://kryten:8080
+      SERVICE_ADDRESS: https://dashboard.tinybots.academy
+      OAUTH_CLIENT_ID: myid
+      OAUTH_CLIENT_SECRET: mysecret
+      DB_RW_HOST: mysql-wonkers-db
+
+# === NodeJS Development Services ===
   megazord-events:
     image: node:22-alpine
     volumes:
@@ -246,11 +265,63 @@ services:
     environment:
       STATUS_QUEUE_ADDRESS: http://localhost:4566/000000000000/status-queue
       MEGAZORD_EVENTS_ADDRESS: http://megazord-events:8080
+      #MONITORING_CONFIG: "{\"robots\":[{\"robotId\":1,\"timezone\":\"Europe/Amsterdam\",\"enabled\":true,\"monitoringRules\":[{\"ruleId\":\"toilet-activity-2hr\",\"eventName\":\"TOILET_ACTIVITY\",\"windowDurationMinutes\":1,\"dailyWindow\":{\"startTime\":\"00:01\",\"endTime\":\"23:59\"},\"actions\":[{\"type\":\"ALARM\",\"config\":{\"eventName\":\"NO_TOILET_ACTIVITY_ALARM\"}}]}]}]}"
     working_dir: /usr/src/app
     entrypoint: [ "sh", "-c", "yarn test:only" ]
     depends_on:
       typ-e:
         condition: service_completed_successfully
+      wonkers-db:
+        condition: service_completed_successfully
+
+  m-o-triggers:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/m-o-triggers:/usr/src/app
+    labels:
+      - m-o-triggers
+    environment:
+      DB_RW_HOST: mysql-typ-e-db
+      DB_PORT: 3306
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      PROWL_ADDRESS: http://prowl:8080
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      AWS_ENDPOINT: http://localstack:4566
+      BASE_ROBOT_QUEUE_ADDRESS: http://localhost:4566/000000000000/status-queue
+    working_dir: /usr/src/app
+    entrypoint: ["sh", "-c", "yarn test"]
+    depends_on:
+      typ-e:
+        condition: service_completed_successfully
+
+  wonkers-ecd:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/wonkers-ecd:/usr/src/app
+    labels:
+      - "wonkers-ecd"
+    environment:
+      DB_RW_HOST: mysql-wonkers-db
+      KRYTEN_USERS_ADDRESS: http://kryten:8080
+      WONKERS_TAAS_ORDERS_SERVICE_ADDRESS: http://wonkers-taas:8080
+      ECARE_PUUR_API_ADDRESS: https://puur_api
+      ECARE_PUUR_TOKEN_ADDRESS: https://ecare_puur_token_address
+      ECARE_PUUR_EMPLOYEE_API_ADDRESS: https://puur_api_employee
+      ENVIRONMENT: dev
+      SMTP_HOST: mailcatcher
+      SMTP_PORT: 1025
+      SMTP_USE_SSL: "false"
+      SMTP_USERNAME: "test"
+      SMTP_PASSWORD: "dummy"
+      SOCKET_TIMEOUT: 5000
+      SLACK_HOOK: https://test-slack.tinybots.nl/test
+      SLACK_CONCEPT_HOOK: https://test-slack.tinybots.nl/test
+      CONCEPT_SLACK_HOOK: https://test-slack.tinybots.nl/test
+    working_dir: /usr/src/app
+    entrypoint: ["sh", "-c", "yarn test:only"]
+    depends_on:
       wonkers-db:
         condition: service_completed_successfully
 
