@@ -6,6 +6,10 @@ import { RobotAccountSeed } from './units/RobotAccountSeed'
 import { EventProviderSeed } from './units/EventProviderSeed'
 import { EventSchemaSeed } from './units/EventSchemaSeed'
 import { IncomingEventCleanerSeed } from './units/IncomingEventCleanerSeed'
+import { ScriptReferenceSeed } from './units/ScriptReferenceSeed'
+import { ScriptVersionSeed } from './units/ScriptVersionSeed'
+import { TaskScheduleSeed } from './units/TaskScheduleSeed'
+import { ScriptExecutionSeed } from './units/ScriptExecutionSeed'
 
 async function main() {
   const args = process.argv.slice(2)
@@ -16,16 +20,57 @@ async function main() {
   const ctx = await createContext(scope)
   try {
     const status = new RobotAccountStatusSeed()
-    const robot = new RobotAccountSeed()
+    const robot = new RobotAccountSeed({ refs: {} })
     const provider = new EventProviderSeed()
+    
     const seeds = [status, robot, provider]
     const orchestrator = new Orchestrator(seeds, ctx)
+    
     if (clean) {
-      const cleanOnly = new Orchestrator([new IncomingEventCleanerSeed(), ...seeds], ctx)
+      // Clean in reverse order
+      const scriptRef = new ScriptReferenceSeed()
+      const scriptRefRefs = { scriptReferenceIds: [] as bigint[] }
+      const scriptVersion = new ScriptVersionSeed(scriptRefRefs)
+      const scriptVersionRefs = { scriptVersionIds: [] as bigint[] }
+      const taskSchedule = new TaskScheduleSeed()
+      const taskScheduleRefs = { scheduleIds: [] as bigint[] }
+      const scriptExecution = new ScriptExecutionSeed(
+        scriptRefRefs,
+        scriptVersionRefs,
+        taskScheduleRefs
+      )
+      const scriptSeeds = [scriptExecution, scriptVersion, scriptRef, taskSchedule]
+      const cleanOnly = new Orchestrator([new IncomingEventCleanerSeed(), ...scriptSeeds, ...seeds], ctx)
       await cleanOnly.clean()
       return
     }
-    const snapshot = await orchestrator.run(dryRun)
+    
+    // Run base seeds first
+    await orchestrator.run(dryRun)
+    
+    // Then run script execution seeds
+    const scriptRef = new ScriptReferenceSeed()
+    const scriptRefRefs = await scriptRef.seed(ctx)
+    
+    const scriptVersion = new ScriptVersionSeed(scriptRefRefs)
+    const scriptVersionRefs = await scriptVersion.seed(ctx)
+    
+    const taskSchedule = new TaskScheduleSeed()
+    const taskScheduleRefs = await taskSchedule.seed(ctx)
+    
+    const scriptExecution = new ScriptExecutionSeed(
+      scriptRefRefs,
+      scriptVersionRefs,
+      taskScheduleRefs
+    )
+    await scriptExecution.seed(ctx)
+    
+    const snapshot = {
+      script_reference: scriptRefRefs,
+      script_version: scriptVersionRefs,
+      task_schedule: taskScheduleRefs
+    }
+    
     console.log(JSON.stringify(snapshot, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2))
   } finally {
     await destroyContext()

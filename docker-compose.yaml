@@ -1,4 +1,4 @@
-name: tinybots
+name: tinybots-devtools
 
 services:
   mysql-typ-e-db:
@@ -19,6 +19,8 @@ services:
       DB_RW_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
     volumes:
       - typ-e-maven-cache:/root/.m2
+      # - /Users/kai/work/tinybots/typ-e/src/main/resources/db/migration/V98__add_triggered_script_execution_support.sql:/usr/src/app/src/main/resources/db/migration/V98__add_triggered_script_execution_support.sql
+      # - /Users/kai/work/tinybots/typ-e/src/main/resources/db/migration/V99__grant_sensara_tables_to_graphql_report_ro.sql:/usr/src/app/src/main/resources/db/migration/V99__grant_sensara_tables_to_graphql_report_ro.sql
     depends_on:
       - mysql-typ-e-db
 
@@ -210,7 +212,7 @@ services:
       WONKERS_USER_ACCOUNT_ADDRESS: "http://wonkers-account:8080"
       MEGAZORD_EVENTS_IS_LOCAL: true
     working_dir: /usr/src/app
-    entrypoint: ["sh", "-c", "yarn test:only"]
+    entrypoint: ["sh", "-c", "yarn test"]
     depends_on:
       prowl:
         condition: service_started
@@ -246,7 +248,7 @@ services:
       JIRA_TOKEN: email@email.com
       JIRA_BASE_URL: email.com
     working_dir: /usr/src/app
-    entrypoint: ["sh", "-c", "yarn test:only"]
+    entrypoint: ["sh", "-c", "yarn test"]
     depends_on:
       typ-e:
         condition: service_completed_successfully
@@ -263,7 +265,7 @@ services:
     labels:
       - azi-3-status-check-jobs
     environment:
-      STATUS_QUEUE_ADDRESS: http://localhost:4566/000000000000/status-queue
+      STATUS_QUEUE_ADDRESS: http://localstack:4566/000000000000/status-queue
       MEGAZORD_EVENTS_ADDRESS: http://megazord-events:8080
       #MONITORING_CONFIG: "{\"robots\":[{\"robotId\":1,\"timezone\":\"Europe/Amsterdam\",\"enabled\":true,\"monitoringRules\":[{\"ruleId\":\"toilet-activity-2hr\",\"eventName\":\"TOILET_ACTIVITY\",\"windowDurationMinutes\":1,\"dailyWindow\":{\"startTime\":\"00:01\",\"endTime\":\"23:59\"},\"actions\":[{\"type\":\"ALARM\",\"config\":{\"eventName\":\"NO_TOILET_ACTIVITY_ALARM\"}}]}]}]}"
     working_dir: /usr/src/app
@@ -323,6 +325,31 @@ services:
     entrypoint: ["sh", "-c", "yarn test:only"]
     depends_on:
       wonkers-db:
+        condition: service_completed_successfully
+    
+  micro-manager:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/micro-manager:/usr/src/app
+    labels:
+      - micro-manager
+    environment:
+      DB_RW_HOST: mysql-typ-e-db
+      DB_PORT: 3306
+      CHECKPOINT_ADDRESS: http://checkpoint:8080
+      PROWL_ADDRESS: http://prowl:8080
+      EVE_ADDRESS: http://eve:8080
+      WADSWORTH_ADDRESS: http://wadsworth:8080
+      COMMANDER_DATA_ADDRESS: http://commander-data:8080
+      REPORTING_ADDRESS: http://reporting:8080
+      SIGMUND_ADDRESS: http://sigmund:8080
+      WONKERS_ROBOTS_ADDRESS: http://wonkers-robots:8080
+      ROBOCOP_ADDRESS: http://robocop:8080
+      PUBLIC_BOT_ID: 999999
+    working_dir: /usr/src/app
+    entrypoint: ["sh", "-c", "yarn test"]
+    depends_on:
+      typ-e:
         condition: service_completed_successfully
 
 volumes:

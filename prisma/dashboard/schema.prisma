@@ -14,6 +14,7 @@ model android_device {
   serial                         String                          @db.VarChar(255)
   device_name                    String?                         @db.VarChar(255)
   hardware_version               String                          @db.VarChar(64)
+  wlan_mac_address               String?                         @db.VarChar(20)
   embodiment_version             String?                         @db.VarChar(64)
   dashboard_robot_id             BigInt?                         @db.UnsignedBigInt
   enrollment_id                  Int?                            @db.UnsignedInt
@@ -614,11 +615,6 @@ model schema_version {
   @@index([success], map: "schema_version_s_idx")
 }
 
-model seed_demo_dashboard {
-  id    Int    @id @default(autoincrement())
-  title String @db.VarChar(255)
-}
-
 model taas_concept_contact {
   id                                                                                     Int                   @id @default(autoincrement()) @db.UnsignedInt
   relation_id                                                                            Int?                  @db.UnsignedInt
@@ -743,13 +739,10 @@ model taas_order {
   receiver_id                                                                           Int?                           @db.UnsignedInt
   returner_id                                                                           Int?                           @db.UnsignedInt
   healthcare_professional_id                                                            Int?                           @db.UnsignedInt
-  discipline_id                                                                         Int?                           @db.UnsignedInt
-  healthcare_demand                                                                     String?                        @db.VarChar(1024)
   notes                                                                                 String?                        @db.VarChar(4096)
   internal_notes                                                                        String?                        @db.Text
   decline_reason                                                                        String?                        @db.VarChar(1024)
   return_reject_reason                                                                  String?                        @db.VarChar(1024)
-  return_reason                                                                         String?                        @db.VarChar(2048)
   taas_id                                                                               Int?                           @db.UnsignedInt
   created_at                                                                            DateTime                       @default(now()) @db.DateTime(0)
   updated_at                                                                            DateTime                       @default(now()) @db.DateTime(0)
@@ -757,7 +750,6 @@ model taas_order {
   taas_concept_return                                                                   taas_concept_return[]
   hardware_type                                                                         hardware_type                  @relation(fields: [hardware_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_taas_order_hardware_type_id")
   taas_order_contact_taas_order_healthcare_professional_idTotaas_order_contact          taas_order_contact?            @relation("taas_order_healthcare_professional_idTotaas_order_contact", fields: [healthcare_professional_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_taas_order_healthcare_professional_id")
-  taas_order_discipline                                                                 taas_order_discipline?         @relation(fields: [discipline_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkc_taas_concept_order_discipline_id")
   integration                                                                           integration                    @relation(fields: [integration_id], references: [id], onUpdate: Restrict, map: "taas_order_ibfk_1")
   dashboard_relation                                                                    dashboard_relation             @relation(fields: [relation_id], references: [id], onUpdate: Restrict, map: "taas_order_ibfk_2")
   taas_order_delivery_address_taas_order_address_idTotaas_order_delivery_address        taas_order_delivery_address?   @relation("taas_order_address_idTotaas_order_delivery_address", fields: [address_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "taas_order_ibfk_3")
@@ -766,6 +758,7 @@ model taas_order {
   taas_order_contact_taas_order_returner_idTotaas_order_contact                         taas_order_contact?            @relation("taas_order_returner_idTotaas_order_contact", fields: [returner_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "taas_order_ibfk_7")
   taas_subscription                                                                     taas_subscription?             @relation(fields: [taas_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "taas_order_ibfk_8")
   taas_order_delivery_address_taas_order_pickup_address_idTotaas_order_delivery_address taas_order_delivery_address?   @relation("taas_order_pickup_address_idTotaas_order_delivery_address", fields: [pickup_address_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "taas_order_ibfk_9")
+  taas_order_info                                                                       taas_order_info[]
   taas_order_installation                                                               taas_order_installation[]
   taas_order_status                                                                     taas_order_status?
 
@@ -779,7 +772,6 @@ model taas_order {
   @@index([requester_id], map: "fk_taas_order_requester_id")
   @@index([returner_id], map: "fk_taas_order_returner_id")
   @@index([taas_id], map: "fk_taas_order_taas_id")
-  @@index([discipline_id], map: "fkc_taas_concept_order_discipline_id")
 }
 
 model taas_order_contact {
@@ -839,7 +831,7 @@ model taas_order_discipline {
   name               String               @unique(map: "idx_taas_order_discipline_name") @db.VarChar(64)
   created_at         DateTime             @default(now()) @db.DateTime(0)
   taas_concept_order taas_concept_order[]
-  taas_order         taas_order[]
+  taas_order_info    taas_order_info[]
 }
 
 model taas_order_installation {
@@ -907,6 +899,21 @@ model taas_subscription {
 
   @@index([relation_id], map: "fk_dashboard_taas_subscription_relation_id")
   @@index([hardware_type_id], map: "fk_taas_subscription_hardware_type_id")
+}
+
+model taas_order_info {
+  id                    Int                    @id @default(autoincrement()) @db.UnsignedInt
+  taas_order_id         Int?                   @db.UnsignedInt
+  discipline_id         Int?                   @db.UnsignedInt
+  healthcare_demand     String?                @db.VarChar(1024)
+  return_reason         String?                @db.VarChar(2048)
+  created_at            DateTime?              @default(now()) @db.DateTime(0)
+  updated_at            DateTime?              @default(now()) @db.DateTime(0)
+  taas_order            taas_order?            @relation(fields: [taas_order_id], references: [id], onUpdate: NoAction, map: "taas_order_info_ibfk_1")
+  taas_order_discipline taas_order_discipline? @relation(fields: [discipline_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "taas_order_info_ibfk_2")
+
+  @@index([discipline_id], map: "fk_taas_order_info_discipline_id")
+  @@index([taas_order_id], map: "fk_taas_order_info_taas_order_id")
 }
 
 enum taas_concept_order_tessa_expert_needed {

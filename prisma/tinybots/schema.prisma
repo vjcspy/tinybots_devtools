@@ -431,6 +431,7 @@ model event_subscription {
   created_at                DateTime?                   @default(now()) @db.Timestamp(0)
   updated_at                DateTime?                   @default(now()) @db.Timestamp(0)
   subscription_type         Int                         @db.UnsignedTinyInt
+  queue                     String?                     @db.VarChar(128)
   robot_account             robot_account               @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_event_subscription_robot_id")
   event_subscription_detail event_subscription_detail[]
   outgoing_event            outgoing_event[]
@@ -438,6 +439,7 @@ model event_subscription {
 
   @@index([robot_id, is_active], map: "event_subscription_robot_active")
   @@index([subscription_type], map: "idx_event_subscription_type")
+  @@index([queue], map: "idx_event_subscription_queue")
 }
 
 model event_subscription_detail {
@@ -468,6 +470,7 @@ model event_trigger {
   robot_account         robot_account         @relation(fields: [robot_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_event_trigger_robot_id")
   script_reference      script_reference      @relation(fields: [script_reference_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_event_trigger_script_ref_id")
   event_trigger_setting event_trigger_setting @relation(fields: [setting_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_event_trigger_setting_id")
+  script_execution      script_execution[]
 
   @@index([outgoing_event_id], map: "fk_event_trigger_outgoing_event_id")
   @@index([robot_id], map: "fk_event_trigger_robot_id")
@@ -674,7 +677,7 @@ model notification {
   created_at           DateTime?           @default(now()) @db.DateTime(0)
   updated_at           DateTime?           @default(now()) @db.DateTime(0)
   notification_type    notification_type   @relation(fields: [notification_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_ibfk_1")
-  user_notification    user_notification[] @ignore
+  user_notification    user_notification[]
 
   @@index([notification_type_id], map: "fk_notification_notification_type_id")
 }
@@ -1035,6 +1038,7 @@ model robot_settings {
   reset_volume                                                  Int           @db.UnsignedInt
   eyes_open_at                                                  DateTime      @db.Time(0)
   eyes_closed_at                                                DateTime      @db.Time(0)
+  listening_sound                                               Boolean       @default(false)
   speech_speed                                                  Int           @db.UnsignedInt
   default_language_id                                           Int           @default(1) @db.UnsignedSmallInt
   time_zone_id                                                  Int           @default(427) @db.UnsignedSmallInt
@@ -1124,17 +1128,20 @@ model script_execution {
   id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
   script_reference_id   BigInt                  @db.UnsignedBigInt
   script_version_id     BigInt                  @db.UnsignedBigInt
-  schedule_id           BigInt                  @db.UnsignedBigInt
-  planned               DateTime                @db.DateTime(0)
+  schedule_id           BigInt?                 @db.UnsignedBigInt
+  planned               DateTime?               @db.DateTime(0)
   created_at            DateTime                @default(now()) @db.DateTime(0)
-  task_schedule         task_schedule           @relation(fields: [schedule_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "script_execution_ibfk_1")
+  triggering_event_id   BigInt?                 @db.UnsignedBigInt
+  event_trigger         event_trigger?          @relation(fields: [triggering_event_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "fk_script_execution_triggering_event_id")
+  task_schedule         task_schedule?          @relation(fields: [schedule_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "script_execution_ibfk_1")
   script_reference      script_reference        @relation(fields: [script_reference_id], references: [id], onUpdate: Restrict, map: "script_execution_ibfk_2")
   script_version        script_version          @relation(fields: [script_version_id], references: [id], onUpdate: Restrict, map: "script_execution_ibfk_3")
   script_step_execution script_step_execution[]
 
-  @@index([schedule_id], map: "fk_scheduled_script_schedule_id")
   @@index([script_reference_id], map: "script_execution_script_reference_id")
   @@index([script_version_id], map: "script_step_script_version_id")
+  @@index([triggering_event_id], map: "idx_triggering_event_id")
+  @@index([schedule_id], map: "script_execution_ibfk_1")
 }
 
 model script_next_closed_question {
@@ -1474,11 +1481,6 @@ model script_version {
   @@index([script_reference_id], map: "script_version_script_reference_id")
 }
 
-model seed_demo_tinybots {
-  id   Int    @id @default(autoincrement())
-  name String @db.VarChar(255)
-}
-
 model sensara_event {
   id                      BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
   sensara_id              String?                @db.VarChar(256)
@@ -1518,6 +1520,7 @@ model sensara_resident_robot {
   id            Int             @id @default(autoincrement()) @db.UnsignedInt
   resident_id   String          @unique(map: "sensara_resident_resident_id") @db.VarChar(256)
   robot_id      Int?            @unique(map: "sensara_resident_robot_id") @db.UnsignedInt
+  is_active     Boolean?        @default(true)
   created_at    DateTime        @default(now()) @db.DateTime(0)
   updated_at    DateTime        @default(now()) @db.DateTime(0)
   sensara_event sensara_event[]
@@ -1726,7 +1729,7 @@ model user_account {
   robot_delete_request                 robot_delete_request[]
   user_account_status                  user_account_status?                   @relation(fields: [account_status_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user_account_ibfk_1")
   eula_config                          eula_config                            @relation(fields: [eula_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_account_ibfk_2")
-  user_notification                    user_notification[]                    @ignore
+  user_notification                    user_notification[]
   user_password_reset                  user_password_reset?
   user_profile                         user_profile?
   user_robot                           user_robot[]
