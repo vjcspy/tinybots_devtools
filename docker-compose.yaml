@@ -45,6 +45,28 @@ services:
     depends_on:
       - mysql-wonkers-db
 
+  mysql-atlas-intelligence-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_USER: dbadmin
+      MYSQL_PASSWORD: v7tL4VY6PEqnL5WH
+      MYSQL_ROOT_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
+      MYSQL_DATABASE: analytics
+    ports:
+      - "1126:3306"
+
+  intelligence:
+    image: 693338167548.dkr.ecr.eu-central-1.amazonaws.com/intelligence:${INTELLIGENCE_VERSION:-latest}
+    environment:
+      DB_RW_HOST: mysql-atlas-intelligence-db:3306
+      DB_HOST: mysql-atlas-intelligence-db:3306
+      DB_RW_USERNAME: root
+      DB_RW_PASSWORD: ICgVcbpYW731vY3UjexgAnuQ69Wv2DdN
+    volumes:
+      - intelligence-maven-cache:/root/.m2
+    depends_on:
+      - mysql-atlas-intelligence-db
+
   localstack:
     image: localstack/localstack
     ports:
@@ -352,9 +374,29 @@ services:
       typ-e:
         condition: service_completed_successfully
 
+  atlas:
+    image: node:22-alpine
+    volumes:
+      - /Users/kai/work/tinybots/atlas:/usr/src/app
+    labels:
+      - atlas-service
+    environment:
+      TYP_DB_RW_HOST: mysql-typ-e-db
+      TYP_DB_PORT: 3306
+      INT_DB_RW_HOST: mysql-atlas-intelligence-db
+      INT_DB_PORT: 3306
+    working_dir: /usr/src/app
+    entrypoint: ["sh", "-c", "corepack enable && yarn install && yarn test"]
+    depends_on:
+      typ-e:
+        condition: service_completed_successfully
+      intelligence:
+        condition: service_completed_successfully
+
 volumes:
   typ-e-maven-cache:
   wonkers-db-maven-cache:
+  intelligence-maven-cache:
 
 networks:
   default:

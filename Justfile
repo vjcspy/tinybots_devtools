@@ -2,4 +2,11 @@ set shell := ["bash", "-cu"]
 
 compose := "docker compose -f ./docker-compose.yaml"
 
-import 'justfiles/database.just' import 'justfiles/wonkers-ecd.just' import 'justfiles/m-o-triggers.just' import 'justfiles/azi-3-status-check-jobs.just' import 'justfiles/megazord-events.just' import 'justfiles/wonkers-graphql.just' import 'justfiles/micro-manager.just'
+import 'justfiles/database.just'
+import 'justfiles/atlas.just'
+import 'justfiles/wonkers-ecd.just'
+import 'justfiles/m-o-triggers.just'
+import 'justfiles/azi-3-status-check-jobs.just'
+import 'justfiles/megazord-events.just'
+import 'justfiles/wonkers-graphql.just'
+import 'justfiles/micro-manager.just'
