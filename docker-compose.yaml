@@ -386,7 +386,7 @@ services:
       INT_DB_RW_HOST: mysql-atlas-intelligence-db
       INT_DB_PORT: 3306
     working_dir: /usr/src/app
-    entrypoint: ["sh", "-c", "corepack enable && yarn install && yarn test"]
+    entrypoint: ["sh", "-c", "yarn run test:only"]
     depends_on:
       typ-e:
         condition: service_completed_successfully
