@@ -677,7 +677,7 @@ model notification {
   created_at           DateTime?           @default(now()) @db.DateTime(0)
   updated_at           DateTime?           @default(now()) @db.DateTime(0)
   notification_type    notification_type   @relation(fields: [notification_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_ibfk_1")
-  user_notification    user_notification[]
+  user_notification    user_notification[] @ignore
 
   @@index([notification_type_id], map: "fk_notification_notification_type_id")
 }
@@ -1729,7 +1729,7 @@ model user_account {
   robot_delete_request                 robot_delete_request[]
   user_account_status                  user_account_status?                   @relation(fields: [account_status_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "user_account_ibfk_1")
   eula_config                          eula_config                            @relation(fields: [eula_version_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_account_ibfk_2")
-  user_notification                    user_notification[]
+  user_notification                    user_notification[]                    @ignore
   user_password_reset                  user_password_reset?
   user_profile                         user_profile?
   user_robot                           user_robot[]

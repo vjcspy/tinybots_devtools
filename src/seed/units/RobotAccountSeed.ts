@@ -11,19 +11,12 @@ export class RobotAccountSeed extends AbstractSeed<RobotAccountRefs> {
 
     async seed(ctx: SeedContext): Promise<RobotAccountRefs> {
         const username = `robot-${ctx.scope}`
-        const existing = await ctx.tinybots.robot_account.findUnique({where: {id: 1}})
-        let r;
-        if (!existing) {
-            r = await ctx.tinybots.robot_account.create({
-                data: {
-                    id: 1,
-                    username: "username-1",
-                    password: 'seed', role: 'robot', account_status_id: 1
-                }
-            })
-        } else {
-            r = existing
-        }
+        const password = 'PBKDF2WithHmacSHA512:1024:18:NDdUxqBLUpif/OQI9KWTm0B4VkyRamu8:eus+wi62zGmjEh/QJiJF2Sfe'
+        const r = await ctx.tinybots.robot_account.upsert({
+            where: {id: 1},
+            update: {username: "username-1", password, role: 'robot', account_status_id: 1},
+            create: {id: 1, username: "username-1", password, role: 'robot', account_status_id: 1}
+        })
         return {robotId: r.id, username}
     }
 

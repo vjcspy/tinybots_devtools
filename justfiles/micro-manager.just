@@ -13,7 +13,7 @@ test-micro-manager:
 
 dev-micro-manager:
     {{compose}} run --rm --service-ports --use-aliases \
-      --entrypoint "sh -c 'corepack enable && yarn dev'" micro-manager
+      --entrypoint "sh -c 'export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 && corepack enable && corepack prepare yarn@4.12.0 --activate && yarn install --silent && yarn dev'" micro-manager
 
 log-micro-manager:
     {{compose}} logs -f \

@@ -10,6 +10,7 @@ import { ScriptReferenceSeed } from './units/ScriptReferenceSeed'
 import { ScriptVersionSeed } from './units/ScriptVersionSeed'
 import { TaskScheduleSeed } from './units/TaskScheduleSeed'
 import { ScriptExecutionSeed } from './units/ScriptExecutionSeed'
+import { MicroManagerTriggeredApisSeed } from './units/MicroManagerTriggeredApisSeed'
 
 async function main() {
   const args = process.argv.slice(2)
@@ -40,13 +41,21 @@ async function main() {
         taskScheduleRefs
       )
       const scriptSeeds = [scriptExecution, scriptVersion, scriptRef, taskSchedule]
-      const cleanOnly = new Orchestrator([new IncomingEventCleanerSeed(), ...scriptSeeds, ...seeds], ctx)
+      const cleanOnly = new Orchestrator([new IncomingEventCleanerSeed(), ...scriptSeeds, ...seeds, new MicroManagerTriggeredApisSeed()], ctx)
       await cleanOnly.clean()
       return
     }
     
     // Run base seeds first
     await orchestrator.run(dryRun)
+
+    if (scope === 'micro-manager-triggered') {
+      const microManagerSeed = new MicroManagerTriggeredApisSeed()
+      const refs = await microManagerSeed.seed(ctx)
+      ctx.registry.set(microManagerSeed.name, refs)
+      console.log(JSON.stringify({ micro_manager_triggered_apis: refs }, (_k, v) => typeof v === 'bigint' ? v.toString() : v, 2))
+      return
+    }
     
     // Then run script execution seeds
     const scriptRef = new ScriptReferenceSeed()
